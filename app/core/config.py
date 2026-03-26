@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     JWT_EXPIRE_HOURS: int = 8
 
     # CORS — stored as a list; parsed from comma-separated string in env
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173", "https://gcgc-ticketing-client.vercel.app"]
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

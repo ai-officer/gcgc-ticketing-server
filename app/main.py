@@ -1,5 +1,6 @@
 """GCG Ticketing System — FastAPI application entry point."""
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -7,7 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.scheduler import scheduler
+
+# APScheduler is not compatible with Vercel serverless — skip it there
+_IS_SERVERLESS = os.environ.get("VERCEL") == "1"
+if not _IS_SERVERLESS:
+    from app.scheduler import scheduler
 
 # Import all route modules
 from app.api.routes import (
@@ -43,10 +48,12 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan: start/stop background scheduler."""
     logger.info("Starting GCG Ticketing System API")
-    scheduler.start()
+    if not _IS_SERVERLESS:
+        scheduler.start()
     yield
     logger.info("Shutting down GCG Ticketing System API")
-    scheduler.shutdown(wait=False)
+    if not _IS_SERVERLESS:
+        scheduler.shutdown(wait=False)
 
 
 app = FastAPI(
@@ -68,9 +75,10 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Static file serving for uploaded photos / assets
+# Static file serving for uploaded photos / assets (local only)
 # ---------------------------------------------------------------------------
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+if os.path.isdir("uploads"):
+    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ---------------------------------------------------------------------------
 # Routers  — all prefixed with /api
